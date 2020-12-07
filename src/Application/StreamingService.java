@@ -3,12 +3,11 @@ package Application;
 public class StreamingService {
     private String streamShortName;
     private String streamLongName;
-    private int streamSubscriptionFee;
+    private final int streamSubscriptionFee;
     private int streamCurrentRevenue;
     private int streamPreviousRevenue;
     private int streamTotalRevenue;
-    private int[] streamLicensing;
-    private final int LIMIT_STREAMS = 10;
+    private int streamLicensingFee;
 
     public StreamingService(String streamShortName, String streamLongName, int streamSubscriptionFee) {
         this.streamShortName = streamShortName;
@@ -17,6 +16,50 @@ public class StreamingService {
         streamCurrentRevenue = 0;
         streamPreviousRevenue = 0;
         streamTotalRevenue = 0;
-        streamLicensing = new int[LIMIT_STREAMS];
+        streamLicensingFee = 0;
+    }
+
+    public String getStreamShortName() {
+        return streamShortName;
+    }
+
+    public String getStreamLongName() {
+        return streamLongName;
+    }
+
+    public int getStreamSubscriptionFee() {
+        return streamSubscriptionFee;
+    }
+
+    public int getStreamCurrentRevenue() {
+        return streamCurrentRevenue;
+    }
+
+    protected void setStreamCurrentRevenue(int streamCurrentRevenue) {
+        this.streamCurrentRevenue = streamCurrentRevenue;
+    }
+
+    public int getStreamPreviousRevenue() {
+        return streamPreviousRevenue;
+    }
+
+    protected void setStreamPreviousRevenue(int streamPreviousRevenue) {
+        this.streamPreviousRevenue = streamPreviousRevenue;
+    }
+
+    public int getStreamTotalRevenue() {
+        return streamTotalRevenue;
+    }
+
+    protected void setStreamTotalRevenue(int streamTotalRevenue) {
+        this.streamTotalRevenue = streamTotalRevenue;
+    }
+
+    public int getStreamLicensingFee() {
+        return streamLicensingFee;
+    }
+
+    protected void setStreamLicensingFee(int streamLicensingFee) {
+        this.streamLicensingFee = streamLicensingFee;
     }
 }
