@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public abstract class Transactions {
     private UUID transactionId;
     private LocalDateTime date;
-    private int price;
+    private int price; // license fee
 
     public UUID getTransactionId() {
         return transactionId;

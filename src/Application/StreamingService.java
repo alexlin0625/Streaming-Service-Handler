@@ -59,7 +59,7 @@ public class StreamingService {
         return streamLicensingFee;
     }
 
-    protected void setStreamLicensingFee(int streamLicensingFee) {
+    void setStreamLicensingFee(int streamLicensingFee) {
         this.streamLicensingFee = streamLicensingFee;
     }
 }
