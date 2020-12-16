@@ -46,4 +46,11 @@ public class Studio {
     protected void setStudioTotalRevenue(int studioTotalRevenue) {
         this.studioTotalRevenue = studioTotalRevenue;
     }
+
+    protected void displayInformation() {
+        System.out.println("studio:             " + shortName + ", " + longName);
+        System.out.println("current_period:     " + studioCurrentRevenue);
+        System.out.println("previous_period:    " + studioPreviousRevenue);
+        System.out.println("total revenue:      " + studioTotalRevenue);
+    }
 }

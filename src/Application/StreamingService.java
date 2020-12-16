@@ -62,4 +62,13 @@ public class StreamingService {
     void setStreamLicensingFee(int streamLicensingFee) {
         this.streamLicensingFee = streamLicensingFee;
     }
+
+    protected void displayInformation() {
+        System.out.println("stream: " + streamShortName + ", " + streamLongName);
+        System.out.println("subscription fee:   " + streamSubscriptionFee);
+        System.out.println("current_period:     " + streamCurrentRevenue);
+        System.out.println("previous_period:    " + streamPreviousRevenue);
+        System.out.println("total revenue:      " + streamTotalRevenue);
+        System.out.println("current licensing:  " + streamLicensingFee);
+    }
 }

@@ -1,4 +1,10 @@
 package Application;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Scanner;
 
 public class TestCaseReader {
@@ -26,6 +32,14 @@ public class TestCaseReader {
     private watchTransaction[] watchTransactions;
     private final int LIMIT_WATCHES = 10;
 
+    // transactions cache: "month+year",
+    private Map<String, offerTransaction[]> offerTransactionsCache;
+    private Map<String, watchTransaction[]> watchTransactionsCache;
+
+    // testing purpose for time stamp
+    private int monthTimeStamp;
+    private int yearTimeStamp;
+
     public TestCaseReader() {
         numDemos = 0;
         demographicGroups = new DemoGroup[LIMIT_DEMO];
@@ -44,6 +58,12 @@ public class TestCaseReader {
 
         numWatches = 0;
         watchTransactions = new watchTransaction[LIMIT_WATCHES];
+
+        offerTransactionsCache = new LinkedHashMap<>();
+        watchTransactionsCache = new LinkedHashMap<>();
+
+        monthTimeStamp = 12;
+        monthTimeStamp = 2020;
     }
 
     public void processInstructions(Boolean verboseMode) {
@@ -132,6 +152,7 @@ public class TestCaseReader {
                             studio.setStudioTotalRevenue(studio.getStudioTotalRevenue()+payLicenceFee);
                         }
                     }
+
                 } else if(tokens[0].equals("watch_event")) {
                     if(verboseMode) { System.out.println("watch_event_acknowledged"); }
                     if(numWatches >= LIMIT_WATCHES) { continue; }
@@ -171,7 +192,8 @@ public class TestCaseReader {
                     // get % of new subscribers
                     int currSubbedPercent = demo.getPercentageSubscribed();
                     int newSubPercentage = Integer.parseInt(tokens[5]) - currSubbedPercent;
-                    if(newSubPercentage < 0) { continue; }
+                    // if no extra subscribers
+                    if(event_type.equals("movie") && newSubPercentage < 0) { continue; }
 
                     int watchViewingCost = 0;
                     int totalAccountsInGroup = demo.getDemoAccounts();
@@ -187,18 +209,134 @@ public class TestCaseReader {
                     demo.setDemoTotalSpending(demo.getDemoTotalSpending()+watchViewingCost);
                     // update stream service revenue
                     stream.setStreamCurrentRevenue(stream.getStreamCurrentRevenue()+watchViewingCost);
-                    stream.setStreamTotalRevenue(stream.getStreamTotalRevenue()+watchViewingCost);
                     // update new percentage of subscribers of demo-group
                     demo.setPercentageSubscribed(Integer.parseInt(tokens[5]));
 
                     // set price and save to record
                     watchTransactions[numWatches] = newWatch;
                     numWatches++;
+
+                } else if(tokens[0].equals("next_month")) {
+                    if (verboseMode) { System.out.println("next_month_acknowledged"); }
+
+                    // cache past offers and watch transactions. Then reset them for new month
+                    String monthYear = ""+monthTimeStamp+yearTimeStamp;
+                    offerTransactionsCache.put(monthYear, offersTransactions);
+                    watchTransactionsCache.put(monthYear, watchTransactions);
+
+                    // reset transactions for current month
+                    offersTransactions = new offerTransaction[LIMIT_OFFERS];
+                    watchTransactions = new watchTransaction[LIMIT_WATCHES];
+                    numOffers = 0;
+                    numWatches = 0;
+
+                    // update current timestamp
+                    if(monthTimeStamp == 12) { yearTimeStamp++; };
+                    monthTimeStamp = monthTimeStamp%12 + 1;
+
+                    // update current and previous dollar amounts
+                    for(DemoGroup group : demographicGroups) {
+                        group.setDemoPreviousSpending(group.getDemoCurrentSpending());
+                        group.setDemoCurrentSpending(0);
+                        group.setPercentageSubscribed(0);
+                    }
+                    for(StreamingService service : streamingServices) {
+                        // calculate the profit, revenue - dollars spent on paying license fee
+                        int profit = service.getStreamCurrentRevenue() - service.getStreamLicensingFee();
+                        service.setStreamTotalRevenue(service.getStreamTotalRevenue()+profit);
+                        service.setStreamPreviousRevenue(profit);
+                        service.setStreamCurrentRevenue(0);
+                        service.setStreamLicensingFee(0);
+                    }
+                    for(Studio studio : studios) {
+                        studio.setStudioPreviousRevenue(studio.getStudioCurrentRevenue());
+                        studio.setStudioCurrentRevenue(0);
+                    }
+
+                } else if(tokens[0].equals("display_demo")) {
+                    if (verboseMode) { System.out.println("display_demo_acknowledged"); }
+                    DemoGroup selectDemo = null;
+                    for(DemoGroup group : demographicGroups) {
+                        if(group.getShortName().equals(tokens[1])) {
+                            selectDemo = group;
+                        }
+                    }
+                    if(selectDemo != null) selectDemo.displayInformation();
+
+                } else if(tokens[0].equals("display_stream")) {
+                    if (verboseMode) { System.out.println("display_stream_acknowledged"); }
+                    StreamingService selectStream = null;
+                    for(StreamingService service : streamingServices) {
+                        if(service.getStreamShortName().equals(tokens[1])) {
+                            selectStream = service;
+                        }
+                    }
+                    if(selectStream != null) selectStream.displayInformation();
+
+                } else if(tokens[0].equals("display_stdio")) {
+                    if (verboseMode) { System.out.println("display_studio_acknowledged"); }
+                    Studio selectStudio = null;
+                    for(Studio studio : studios) {
+                        if(studio.getShortName().equals(tokens[1])) {
+                            selectStudio = studio;
+                        }
+                    }
+                    if(selectStudio != null) selectStudio.displayInformation();
+
+                } else if(tokens[0].equals("display_events")) {
+                    if (verboseMode) { System.out.println("display_events_acknowledged"); }
+                    List<List<String>> rows = new ArrayList<>();
+                    List<String> headers = Arrays.asList("Type", "Name", "Year", "Duration", "Studio", "License Fee");
+                    rows.add(headers);
+                    for(Event event : events) {
+                        rows.add(Arrays.asList(event.getEventType(), event.getEventFullName(), ""+event.getEventYear(),
+                                ""+event.getEventDuration(), event.getEventStudioOwner(), ""+event.getEventLicenseFee()));
+                    }
+                    System.out.println(formatAsTable(rows));
+
+                } else if(tokens[0].equals("display_offers")) {
+                    if (verboseMode) { System.out.println("display_offers_acknowledged"); }
+                    List<List<String>> rows = new ArrayList<>();
+                    List<String> headers = Arrays.asList("Stream", "Type", "Name", "Year", "Pay-Per-View Price");
+                    rows.add(headers);
+                    for(offerTransaction offer : offersTransactions) {
+                        rows.add(Arrays.asList(offer.getOfferStream(), offer.getOfferType(), offer.getOfferEventName(),
+                                ""+offer.getOfferEventYear(), ""+offer.getPayPerViewOfferPrice()));
+                    }
+                    System.out.println(formatAsTable(rows));
+
+                } else if(tokens[0].equals("display_time")) {
+                    if (verboseMode) { System.out.println("display_time_acknowledged"); }
+                    System.out.println("Month: " + monthTimeStamp + ", " + "Year: " + yearTimeStamp);
+
+                } else if(tokens[0].equals("quit") || tokens[0].equals("stop")) {
+                    break;
                 }
             } catch(Exception e) {
                 e.printStackTrace();
                 System.out.println("Invalid Command");
             }
         }
+    }
+    public static String formatAsTable(List<List<String>> rows) {
+        int[] maxLengths = new int[rows.get(0).size()];
+        for (List<String> row : rows) {
+            for (int i = 0; i < row.size(); i++)
+            {
+                maxLengths[i] = Math.max(maxLengths[i], row.get(i).length());
+            }
+        }
+
+        StringBuilder formatBuilder = new StringBuilder();
+        for (int maxLength : maxLengths) {
+            formatBuilder.append("%-").append(maxLength + 2).append("s");
+        }
+        String format = formatBuilder.toString();
+
+        StringBuilder result = new StringBuilder();
+        for (List<String> row : rows) {
+            result.append(String.format(format, (Object) row.toArray(new String[0]))).append("\n");
+        }
+        return result.toString();
     }
 }
