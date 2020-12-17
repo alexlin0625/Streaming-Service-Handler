@@ -69,6 +69,7 @@ public class DemoGroup {
         System.out.println("size:            " + demoAccounts);
         System.out.println("current_period:  " + demoCurrentSpending);
         System.out.println("previous_period: " + demoPreviousSpending);
-        System.out.println("total:           " + demoTotalSpending);
+        System.out.println("total_spending:  " + demoTotalSpending);
+        System.out.println("current subbed:  " + percentageSubscribed + "%");
     }
 }

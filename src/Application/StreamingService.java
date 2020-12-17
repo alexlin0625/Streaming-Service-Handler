@@ -8,6 +8,7 @@ public class StreamingService {
     private int streamPreviousRevenue;
     private int streamTotalRevenue;
     private int streamLicensingFee;
+    private int streamTotalLicenseFee;
 
     public StreamingService(String streamShortName, String streamLongName, int streamSubscriptionFee) {
         this.streamShortName = streamShortName;
@@ -17,6 +18,7 @@ public class StreamingService {
         streamPreviousRevenue = 0;
         streamTotalRevenue = 0;
         streamLicensingFee = 0;
+        streamTotalLicenseFee = 0;
     }
 
     public String getStreamShortName() {
@@ -63,12 +65,21 @@ public class StreamingService {
         this.streamLicensingFee = streamLicensingFee;
     }
 
+    public int getStreamTotalLicenseFee() {
+        return streamTotalLicenseFee;
+    }
+
+    protected void setStreamTotalLicenseFee(int streamTotalLicenseFee) {
+        this.streamTotalLicenseFee = streamTotalLicenseFee;
+    }
+
     protected void displayInformation() {
-        System.out.println("stream: " + streamShortName + ", " + streamLongName);
-        System.out.println("subscription fee:   " + streamSubscriptionFee);
-        System.out.println("current_period:     " + streamCurrentRevenue);
-        System.out.println("previous_period:    " + streamPreviousRevenue);
-        System.out.println("total revenue:      " + streamTotalRevenue);
-        System.out.println("current licensing:  " + streamLicensingFee);
+        System.out.println("stream:                 " + streamShortName + ", " + streamLongName);
+        System.out.println("subscription fee:       " + streamSubscriptionFee);
+        System.out.println("current_period:         " + streamCurrentRevenue);
+        System.out.println("previous_period:        " + streamPreviousRevenue);
+        System.out.println("total revenue:          " + streamTotalRevenue);
+        System.out.println("current licensing cost: " + streamLicensingFee);
+        System.out.println("total licensing cost:   " + streamTotalLicenseFee);
     }
 }

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Streaming Service Handler:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Streaming_Service_Handler_jar</output-path>
+    <root id="archive" name="Streaming Service Handler.jar">
+      <element id="module-output" name="Streaming Service Handler" />
+    </root>
+  </artifact>
+</component>

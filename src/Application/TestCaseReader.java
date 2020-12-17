@@ -63,7 +63,7 @@ public class TestCaseReader {
         watchTransactionsCache = new LinkedHashMap<>();
 
         monthTimeStamp = 12;
-        monthTimeStamp = 2020;
+        yearTimeStamp = 2020;
     }
 
     public void processInstructions(Boolean verboseMode) {
@@ -81,7 +81,7 @@ public class TestCaseReader {
                 if(tokens[0].equals("create_demo")) {
                     if(verboseMode) { System.out.println("create_demo_acknowledged"); }
                     if(numDemos >= LIMIT_DEMO) { continue; }
-
+                    // short name, long name, accounts size
                     DemoGroup newGroup = new DemoGroup(tokens[1], tokens[2], Integer.parseInt(tokens[3]));
                     demographicGroups[numDemos] = newGroup;
                     numDemos++;
@@ -89,7 +89,7 @@ public class TestCaseReader {
                 } else if(tokens[0].equals("create_studio")) {
                     if(verboseMode) { System.out.println("create_studio_acknowledged"); }
                     if(numStudios >= LIMIT_STUDIO) { continue; }
-
+                    // short name, long name
                     Studio newStudio = new Studio(tokens[1], tokens[2]);
                     studios[numStudios] = newStudio;
                     numStudios++;
@@ -97,7 +97,7 @@ public class TestCaseReader {
                 } else if(tokens[0].equals("create_stream")) {
                     if(verboseMode) { System.out.println("create_stream_acknowledged"); }
                     if(numStreams >= LIMIT_STUDIO) { continue; }
-
+                    // short name, long name, subscription fee
                     StreamingService newStream = new StreamingService(tokens[1], tokens[2], Integer.parseInt(tokens[3]));
                     streamingServices[numStreams] = newStream;
                     numStreams++;
@@ -117,11 +117,11 @@ public class TestCaseReader {
                     if(numOffers >= LIMIT_EVENTS) { continue; }
 
                     String offerType = tokens[0].substring(6);
-                    // type, stream, event name, event year, ppv price(if not movie)
-                    offerTransaction newOffer = new offerTransaction(offerType, tokens[2], tokens[3], Integer.parseInt(tokens[4]));
+                    // type[0], stream, event name, event year, ppv price(if not movie)
+                    offerTransaction newOffer = new offerTransaction(offerType, tokens[1], tokens[2], Integer.parseInt(tokens[3]));
                     // set price for pay_per_view offer
                     if(offerType.equals("ppv")) {
-                        newOffer.setPayPerViewOfferPrice(Integer.parseInt(tokens[5]));
+                        newOffer.setPayPerViewOfferPrice(Integer.parseInt(tokens[4]));
                     }
 
                     // stream service must license the event from studio
@@ -129,9 +129,9 @@ public class TestCaseReader {
                     int payLicenceFee = 0;
                     // search the events by matching event name and year
                     for(Event event : events) {
-                        if(event.getEventFullName().equals(tokens[2]) && event.getEventYear() == Integer.parseInt(tokens[4])) {
+                        if(event != null && event.getEventFullName().equals(tokens[2]) && event.getEventYear() == Integer.parseInt(tokens[3])) {
                             payStudio = event.getEventStudioOwner();
-                            payLicenceFee = event.getEventLicenseFee();
+                            payLicenceFee += event.getEventLicenseFee();
                             newOffer.setPrice(payLicenceFee); // set license fee price in transaction
                         }
                     }
@@ -141,13 +141,13 @@ public class TestCaseReader {
 
                     // charge licence fee from stream service which event is offered to
                     for(StreamingService service : streamingServices) {
-                        if(service.getStreamShortName().equals(tokens[1])) {
+                        if(service != null && service.getStreamShortName().equals(tokens[1])) {
                             service.setStreamLicensingFee(service.getStreamLicensingFee()+payLicenceFee);
                         }
                     }
                     // studio which created the event gained licence fee charged from Steaming Service
                     for(Studio studio : studios) {
-                        if(studio.getShortName().equals(payStudio)) {
+                        if(studio != null && studio.getShortName().equals(payStudio)) {
                             studio.setStudioCurrentRevenue(studio.getStudioCurrentRevenue()+payLicenceFee);
                             studio.setStudioTotalRevenue(studio.getStudioTotalRevenue()+payLicenceFee);
                         }
@@ -167,23 +167,26 @@ public class TestCaseReader {
 
                     // get corresponding stream service which current event(name/year) was offered to
                     for(offerTransaction offer : offersTransactions) {
-                        if(offer.getOfferEventName().equals(tokens[3]) && offer.getOfferEventYear() == Integer.parseInt(tokens[4]) &&
+                        if(offer != null && offer.getOfferEventName().equals(tokens[3]) &&
+                                offer.getOfferEventYear() == Integer.parseInt(tokens[4]) &&
                                 offer.getOfferStream().equals(tokens[2])) {
                             offer_event = offer;
                             curr_stream_service_name = offer.getOfferStream();
                             event_type = offer.getOfferType();
                         }
                     }
-                    // get target stream service and demo group
+
                     StreamingService stream = null;
                     DemoGroup demo = null;
+
+                    // get target stream service and demo group
                     for(StreamingService service : streamingServices) {
-                        if(service.getStreamShortName().equals(curr_stream_service_name)) {
+                        if(service != null && service.getStreamShortName().equals(curr_stream_service_name)) {
                             stream = service;
                         }
                     }
                     for(DemoGroup group : demographicGroups) {
-                        if(group.getShortName().equals(tokens[1])) {
+                        if(group != null && group.getShortName().equals(tokens[1])) {
                             demo = group;
                         }
                     }
@@ -199,9 +202,9 @@ public class TestCaseReader {
                     int totalAccountsInGroup = demo.getDemoAccounts();
                     // calculate the fees based on percentage and event type
                     if(event_type.equals("movie")) {
-                        watchViewingCost = ((newSubPercentage/100)*totalAccountsInGroup) * stream.getStreamSubscriptionFee();
+                        watchViewingCost = (((newSubPercentage*totalAccountsInGroup)/100) * stream.getStreamSubscriptionFee());
                     } else if(event_type.equals("ppv")) {
-                        watchViewingCost =  ((newSubPercentage/100)*totalAccountsInGroup) * offer_event.getPayPerViewOfferPrice();
+                        watchViewingCost = (((newSubPercentage*totalAccountsInGroup)/100) * offer_event.getPayPerViewOfferPrice());
                     }
 
                     // update demo-group expense
@@ -209,6 +212,7 @@ public class TestCaseReader {
                     demo.setDemoTotalSpending(demo.getDemoTotalSpending()+watchViewingCost);
                     // update stream service revenue
                     stream.setStreamCurrentRevenue(stream.getStreamCurrentRevenue()+watchViewingCost);
+                    stream.setStreamTotalRevenue(stream.getStreamTotalRevenue()+watchViewingCost);
                     // update new percentage of subscribers of demo-group
                     demo.setPercentageSubscribed(Integer.parseInt(tokens[5]));
 
@@ -231,57 +235,54 @@ public class TestCaseReader {
                     numWatches = 0;
 
                     // update current timestamp
-                    if(monthTimeStamp == 12) { yearTimeStamp++; };
+                    if(monthTimeStamp == 12) { yearTimeStamp++; }
                     monthTimeStamp = monthTimeStamp%12 + 1;
 
                     // update current and previous dollar amounts
                     for(DemoGroup group : demographicGroups) {
+                        if(group == null) { continue; }
                         group.setDemoPreviousSpending(group.getDemoCurrentSpending());
                         group.setDemoCurrentSpending(0);
                         group.setPercentageSubscribed(0);
                     }
                     for(StreamingService service : streamingServices) {
-                        // calculate the profit, revenue - dollars spent on paying license fee
-                        int profit = service.getStreamCurrentRevenue() - service.getStreamLicensingFee();
-                        service.setStreamTotalRevenue(service.getStreamTotalRevenue()+profit);
-                        service.setStreamPreviousRevenue(profit);
+                        if(service == null) { continue; }
+                        service.setStreamPreviousRevenue(service.getStreamCurrentRevenue());
+                        service.setStreamTotalLicenseFee(service.getStreamTotalLicenseFee()+service.getStreamLicensingFee());
                         service.setStreamCurrentRevenue(0);
                         service.setStreamLicensingFee(0);
                     }
                     for(Studio studio : studios) {
+                        if(studio == null) { continue; }
                         studio.setStudioPreviousRevenue(studio.getStudioCurrentRevenue());
                         studio.setStudioCurrentRevenue(0);
                     }
 
                 } else if(tokens[0].equals("display_demo")) {
                     if (verboseMode) { System.out.println("display_demo_acknowledged"); }
-                    DemoGroup selectDemo = null;
+
                     for(DemoGroup group : demographicGroups) {
-                        if(group.getShortName().equals(tokens[1])) {
-                            selectDemo = group;
+                        if(group != null && group.getShortName().equals(tokens[1])) {
+                            group.displayInformation();
                         }
                     }
-                    if(selectDemo != null) selectDemo.displayInformation();
 
                 } else if(tokens[0].equals("display_stream")) {
                     if (verboseMode) { System.out.println("display_stream_acknowledged"); }
-                    StreamingService selectStream = null;
-                    for(StreamingService service : streamingServices) {
-                        if(service.getStreamShortName().equals(tokens[1])) {
-                            selectStream = service;
-                        }
-                    }
-                    if(selectStream != null) selectStream.displayInformation();
 
-                } else if(tokens[0].equals("display_stdio")) {
-                    if (verboseMode) { System.out.println("display_studio_acknowledged"); }
-                    Studio selectStudio = null;
-                    for(Studio studio : studios) {
-                        if(studio.getShortName().equals(tokens[1])) {
-                            selectStudio = studio;
+                    for(StreamingService service : streamingServices) {
+                        if(service != null && service.getStreamShortName().equals(tokens[1])) {
+                            service.displayInformation();
                         }
                     }
-                    if(selectStudio != null) selectStudio.displayInformation();
+
+                } else if(tokens[0].equals("display_studio")) {
+                    if (verboseMode) { System.out.println("display_studio_acknowledged"); }
+                    for(Studio studio : studios) {
+                        if(studio != null && studio.getShortName().equals(tokens[1])) {
+                            studio.displayInformation();
+                        }
+                    }
 
                 } else if(tokens[0].equals("display_events")) {
                     if (verboseMode) { System.out.println("display_events_acknowledged"); }
@@ -289,8 +290,9 @@ public class TestCaseReader {
                     List<String> headers = Arrays.asList("Type", "Name", "Year", "Duration", "Studio", "License Fee");
                     rows.add(headers);
                     for(Event event : events) {
-                        rows.add(Arrays.asList(event.getEventType(), event.getEventFullName(), ""+event.getEventYear(),
-                                ""+event.getEventDuration(), event.getEventStudioOwner(), ""+event.getEventLicenseFee()));
+                        if(event == null) { continue; }
+                        rows.add(Arrays.asList(event.getEventType(), event.getEventFullName(), String.valueOf(event.getEventYear()),
+                                String.valueOf(event.getEventDuration()), event.getEventStudioOwner(), String.valueOf(event.getEventLicenseFee())));
                     }
                     System.out.println(formatAsTable(rows));
 
@@ -300,6 +302,7 @@ public class TestCaseReader {
                     List<String> headers = Arrays.asList("Stream", "Type", "Name", "Year", "Pay-Per-View Price");
                     rows.add(headers);
                     for(offerTransaction offer : offersTransactions) {
+                        if(offer == null) { continue; }
                         rows.add(Arrays.asList(offer.getOfferStream(), offer.getOfferType(), offer.getOfferEventName(),
                                 ""+offer.getOfferEventYear(), ""+offer.getPayPerViewOfferPrice()));
                     }
@@ -335,7 +338,7 @@ public class TestCaseReader {
 
         StringBuilder result = new StringBuilder();
         for (List<String> row : rows) {
-            result.append(String.format(format, (Object) row.toArray(new String[0]))).append("\n");
+            result.append(String.format(format, row.toArray(new String[0]))).append("\n");
         }
         return result.toString();
     }
